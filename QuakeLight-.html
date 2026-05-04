@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; connect-src *; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src https://fonts.gstatic.com;"/>
+<title>QuakeLight — Earthquake Monitoring System</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1a0d;
+  --bg2:#111f11;
+  --bg3:#162016;
+  --panel:#1a2d1a;
+  --panel2:#1f351f;
+  --border:#2a4a2a;
+  --border2:#3a6a3a;
+  --green:#4caf50;
+  --green2:#81c784;
+  --green3:#a5d6a7;
+  --greenx:#00e676;
+  --red:#ef5350;
+  --amber:#ffa726;
+  --text:#e8f5e9;
+  --text2:#a5c8a5;
+  --text3:#6a936a;
+  --font-display:'Orbitron',monospace;
+  --font-mono:'Share Tech Mono',monospace;
+  --font-body:'Inter',sans-serif;
+}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+.page{display:none;min-height:100vh}
+.page.active{display:flex;flex-direction:column}
+
+.navbar{
+  background:var(--panel);border-bottom:1px solid var(--border);
+  padding:0 32px;height:68px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;position:sticky;top:0;z-index:100;
+}
+.nav-brand{display:flex;align-items:center;gap:14px;cursor:default}
+.nav-title{font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--green);letter-spacing:3px;text-shadow:0 0 20px rgba(76,175,80,.4)}
+.nav-btn{
+  background:var(--panel2);border:1px solid var(--border2);
+  color:var(--green2);padding:9px 22px;border-radius:6px;
+  font-family:var(--font-body);font-size:14px;font-weight:500;
+  cursor:pointer;transition:all .2s;
+}
+.nav-btn:hover{background:var(--border);color:var(--greenx);border-color:var(--greenx)}
+
+.logo-sm{width:44px;height:44px}
+.logo-lg{width:280px;height:280px;filter:drop-shadow(0 0 30px rgba(76,175,80,.35))}
+
+/* ── LANDING ── */
+#page-landing{
+  background:radial-gradient(ellipse at 50% 40%, #0d2b0d 0%, #060e06 100%);
+  position:relative;overflow:hidden;
+}
+#page-landing::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(76,175,80,.04) 40px),
+                   repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(76,175,80,.04) 40px);
+  pointer-events:none;
+}
+.landing-body{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 20px;position:relative;
+}
+.landing-tagline{margin-top:20px;font-family:var(--font-mono);font-size:16px;color:var(--text2);letter-spacing:2px}
+.landing-actions{
+  position:absolute;bottom:40px;right:48px;
+  display:flex;align-items:center;gap:16px;
+}
+.btn-primary{
+  background:var(--green);color:#0a1a0a;
+  border:none;padding:14px 36px;border-radius:8px;
+  font-family:var(--font-display);font-size:15px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;transition:all .2s;
+}
+.btn-primary:hover{background:var(--greenx);transform:translateY(-1px);box-shadow:0 4px 20px rgba(76,175,80,.4)}
+.scan-ring{
+  position:absolute;border-radius:50%;border:1px solid rgba(76,175,80,.15);
+  animation:scanpulse 3s ease-out infinite;pointer-events:none;
+}
+@keyframes scanpulse{
+  0%{width:300px;height:300px;opacity:.6;top:calc(50% - 150px);left:calc(50% - 150px)}
+  100%{width:700px;height:700px;opacity:0;top:calc(50% - 350px);left:calc(50% - 350px)}
+}
+.scan-ring:nth-child(2){animation-delay:1s}
+.scan-ring:nth-child(3){animation-delay:2s}
+
+/* ── LOGIN ── */
+#page-login{background:var(--bg);align-items:stretch}
+.login-body{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.login-card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:48px 44px;width:100%;max-width:480px;
+}
+.login-card h2{
+  font-family:var(--font-display);font-size:18px;font-weight:700;
+  color:var(--green);letter-spacing:2px;text-align:center;margin-bottom:32px;
+}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.field label{font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:500}
+.field input{
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);padding:13px 16px;border-radius:8px;
+  font-family:var(--font-mono);font-size:14px;outline:none;transition:border-color .2s;
+}
+.field input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.1)}
+.login-submit{
+  width:100%;padding:14px;background:var(--green);
+  color:#0a1a0a;border:none;border-radius:8px;
+  font-family:var(--font-display);font-size:14px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;margin-top:8px;transition:all .2s;
+}
+.login-submit:hover{background:var(--greenx)}
+.login-submit:disabled{background:var(--border);color:var(--text3);cursor:not-allowed}
+.login-error{
+  color:var(--red);font-size:13px;font-family:var(--font-mono);
+  text-align:center;margin-top:12px;display:none;
+  padding:10px;background:rgba(239,83,80,.08);border-radius:6px;border:1px solid rgba(239,83,80,.2);
+}
+
+/* ── DASHBOARD LAYOUT ── */
+#page-dashboard{flex-direction:row;min-height:100vh}
+.sidebar{
+  width:240px;background:var(--panel);border-right:1px solid var(--border);
+  flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;padding:28px 14px 20px;gap:12px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.sidebar-avatar{
+  width:80px;height:80px;border-radius:50%;
+  background:var(--panel2);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;margin-bottom:4px;
+}
+.sidebar-name{
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--green2);padding:7px 12px;border-radius:6px;
+  font-family:var(--font-mono);font-size:12px;font-weight:600;
+  text-align:center;width:100%;letter-spacing:1px;
+}
+.sidebar-role{font-size:11px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase}
+.sidebar-divider{width:100%;height:1px;background:var(--border);margin:4px 0}
+.sidebar-nav{display:flex;flex-direction:column;gap:6px;width:100%}
+.sidebar-link{
+  display:flex;align-items:center;gap:10px;
+  background:transparent;color:var(--text2);
+  padding:11px 14px;border-radius:8px;font-size:13px;
+  cursor:pointer;border:1px solid transparent;width:100%;
+  text-align:left;transition:all .15s;font-family:var(--font-body);
+}
+.sidebar-link:hover{background:var(--panel2);color:var(--text);border-color:var(--border)}
+.sidebar-link.active{background:var(--panel2);color:var(--green);border-color:var(--border2)}
+.sidebar-link svg{width:16px;height:16px;flex-shrink:0}
+
+/* ── EXIT / LOGOUT BUTTONS ── */
+.sidebar-exit-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:8px;font-size:13px;
+  cursor:pointer;border:1px solid transparent;width:100%;
+  text-align:left;transition:all .15s;font-family:var(--font-body);
+  color:var(--text3);background:transparent;
+}
+.sidebar-exit-btn:hover{background:rgba(239,83,80,.08);color:var(--red);border-color:rgba(239,83,80,.25)}
+.sidebar-exit-btn svg{width:16px;height:16px;flex-shrink:0}
+
+.sidebar-back-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:8px;font-size:13px;
+  cursor:pointer;border:1px solid transparent;width:100%;
+  text-align:left;transition:all .15s;font-family:var(--font-body);
+  color:var(--text3);background:transparent;
+}
+.sidebar-back-btn:hover{background:var(--panel2);color:var(--text2);border-color:var(--border)}
+.sidebar-back-btn svg{width:16px;height:16px;flex-shrink:0}
+
+.sidebar-bottom{margin-top:auto;width:100%;display:flex;flex-direction:column;gap:6px}
+
+.mqtt-pill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:20px;padding:7px 12px;font-size:11px;
+  color:var(--text3);font-family:var(--font-mono);width:100%;
+}
+.mqtt-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
+.mqtt-dot.online{background:var(--greenx);box-shadow:0 0 6px var(--greenx)}
+.mqtt-dot.error{background:var(--red)}
+
+.main-area{flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.alert-bar{
+  background:linear-gradient(90deg,#7f0000,#b71c1c,#7f0000);
+  color:#fff;padding:10px 24px;font-size:13px;font-weight:600;
+  display:none;text-align:center;letter-spacing:1px;
+  font-family:var(--font-mono);animation:alertpulse 1s infinite;
+}
+@keyframes alertpulse{0%,100%{opacity:1}50%{opacity:.75}}
+.tab-content{flex:1;padding:24px;overflow-y:auto;display:none}
+.tab-content.active{display:flex;flex-direction:column;gap:18px}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.stat-card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;
+}
+.stat-card-top{display:flex;align-items:center;gap:8px}
+.stat-icon{opacity:.5;flex-shrink:0}
+.stat-label{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:var(--font-mono)}
+.stat-value{font-family:var(--font-display);font-size:26px;font-weight:700;color:#fff;letter-spacing:1px}
+.stat-value.alert-val{color:var(--red);text-shadow:0 0 12px rgba(239,83,80,.5)}
+.threshold-select{
+  background:var(--bg3);color:var(--green2);
+  border:1px solid var(--border2);font-family:var(--font-display);
+  font-size:22px;font-weight:700;cursor:pointer;
+  outline:none;padding:2px 6px;border-radius:6px;letter-spacing:1px;
+}
+.eq-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;font-size:12px;
+  font-family:var(--font-mono);font-weight:600;letter-spacing:1px;
+}
+.eq-badge.active{background:rgba(239,83,80,.15);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.eq-badge.inactive{background:rgba(76,175,80,.1);color:var(--green2);border:1px solid rgba(76,175,80,.2)}
+
+.chart-row{display:grid;grid-template-columns:1fr 250px;gap:14px;flex:1}
+.chart-card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:20px;display:flex;flex-direction:column;
+}
+.card-title{
+  font-family:var(--font-mono);font-size:12px;color:var(--text3);
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.card-title-dot{width:6px;height:6px;border-radius:50%;background:var(--greenx);box-shadow:0 0 6px var(--greenx);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.right-col{display:flex;flex-direction:column;gap:14px}
+
+.ctrl-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.ctrl-card-title{font-family:var(--font-mono);font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.ctrl-row{display:flex;gap:8px;align-items:center}
+.status-pill{padding:6px 14px;border-radius:20px;font-size:11px;font-family:var(--font-mono);font-weight:600;letter-spacing:1px}
+.pill-active{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3)}
+.pill-inactive{background:rgba(100,100,100,.15);color:#888;border:1px solid rgba(100,100,100,.2)}
+.toggle-switch{position:relative;width:52px;height:28px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;border-radius:14px;background:var(--panel2);border:1px solid var(--border);transition:all .3s}
+.toggle-track.on{background:rgba(239,83,80,.2);border-color:var(--red)}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#666;transition:all .3s}
+.toggle-track.on .toggle-thumb{left:27px;background:var(--red);box-shadow:0 0 8px var(--red)}
+.toggle-label{font-family:var(--font-mono);font-size:12px;font-weight:600;color:#888;transition:color .3s}
+.toggle-label.on{color:var(--red)}
+.ctrl-disabled .toggle-switch{cursor:not-allowed;opacity:.4}
+.ctrl-disabled .status-pill{opacity:.4}
+
+.battery-card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;align-items:center;
+}
+.battery-pct{font-family:var(--font-display);font-size:28px;font-weight:700;color:#fff;text-align:center;margin-top:6px}
+.battery-sub{font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:1px;text-align:center;margin-top:2px}
+
+.history-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1}
+.history-search{
+  display:flex;align-items:center;gap:10px;
+  background:var(--panel2);padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.history-search input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--font-mono);font-size:14px;outline:none}
+.history-search input::placeholder{color:var(--text3)}
+.history-table{width:100%;border-collapse:collapse}
+.history-table th{
+  background:var(--bg3);padding:12px 20px;
+  font-family:var(--font-mono);font-size:11px;color:var(--text3);
+  letter-spacing:1px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--border);
+}
+.history-table td{padding:12px 20px;font-size:13px;font-family:var(--font-mono);color:var(--text2);border-bottom:1px solid var(--border)}
+.history-table tr:last-child td{border-bottom:none}
+.history-table tr:hover td{background:rgba(76,175,80,.04);color:var(--text)}
+.pga-cell{color:var(--green2);font-weight:600}
+.pga-cell.high{color:var(--red)}
+.empty-state{padding:48px 20px;text-align:center;font-family:var(--font-mono);color:var(--text3);font-size:13px}
+
+.conn-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:520px}
+.conn-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px}
+.conn-row:last-child{border-bottom:none}
+.conn-key{font-family:var(--font-mono);color:var(--text3);font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.conn-val{font-family:var(--font-mono);color:var(--green2);font-size:12px;text-align:right;max-width:260px;word-break:break-all}
+.conn-badge{padding:4px 10px;border-radius:12px;font-size:11px;font-family:var(--font-mono)}
+
+.spinner{
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Mobile topbar hidden on desktop */
+#mobile-topbar{display:none}
+
+/* ── HAMBURGER BUTTON (mobile only) ── */
+.hamburger{
+  display:none;background:none;border:none;cursor:pointer;
+  padding:8px;color:var(--green2);flex-shrink:0;
+}
+.hamburger svg{display:block}
+
+/* ── SIDEBAR OVERLAY (mobile) ── */
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;
+}
+.sidebar-overlay.open{display:block}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-bottom-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:120;
+  background:var(--panel);border-top:1px solid var(--border);
+  flex-direction:row;align-items:stretch;height:58px;
+}
+.mobile-nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;background:none;border:none;color:var(--text3);
+  font-family:var(--font-mono);font-size:9px;letter-spacing:.5px;
+  cursor:pointer;transition:color .15s;padding:0;text-transform:uppercase;
+}
+.mobile-nav-btn.active{color:var(--green)}
+.mobile-nav-btn svg{width:20px;height:20px}
+
+/* ── RESPONSIVE BREAKPOINTS ── */
+@media(max-width:768px){
+
+  /* Navbar */
+  .navbar{padding:0 16px;height:56px}
+  .nav-title{font-size:17px;letter-spacing:2px}
+
+  /* Landing */
+  .landing-body{padding:20px 16px 100px}
+  .logo-lg{width:200px;height:200px}
+  .landing-tagline{font-size:12px;letter-spacing:1px;text-align:center}
+  .landing-actions{
+    position:static;margin-top:28px;
+    justify-content:center;flex-direction:column;align-items:center;
+  }
+  .btn-primary{padding:14px 32px;font-size:14px;width:100%;max-width:260px}
+  @keyframes scanpulse{
+    0%{width:200px;height:200px;opacity:.6;top:calc(50% - 100px);left:calc(50% - 100px)}
+    100%{width:500px;height:500px;opacity:0;top:calc(50% - 250px);left:calc(50% - 250px)}
+  }
+
+  /* Login card */
+  .login-card{padding:32px 20px;border-radius:12px}
+
+  /* Dashboard: stack sidebar below (hidden by default, slides in) */
+  #page-dashboard{flex-direction:column!important}
+
+  .sidebar{
+    position:fixed;top:0;left:-260px;width:240px;height:100vh;z-index:200;
+    transition:left .25s ease;box-shadow:4px 0 24px rgba(0,0,0,.5);
+  }
+  .sidebar.open{left:0}
+
+  /* Show hamburger, hide desktop sidebar-bottom mqtt pill from flow */
+  .hamburger{display:flex;align-items:center}
+
+  /* Main area: full width, add bottom padding for mobile nav */
+  .main-area{min-height:calc(100vh - 56px);padding-bottom:58px}
+
+  /* Stat row: 1 column on very small, 2 col on medium mobile */
+  .stat-row{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-row .stat-card:last-child{grid-column:1/-1}
+
+  /* Chart row: stack vertically */
+  .chart-row{grid-template-columns:1fr;gap:10px}
+  .right-col{flex-direction:row;flex-wrap:wrap;gap:10px}
+  .ctrl-card{flex:1;min-width:140px}
+  .battery-card{flex:1;min-width:140px}
+
+  /* Tab content padding */
+  .tab-content{padding:14px}
+
+  /* History table: compact */
+  .history-table th,.history-table td{padding:10px 12px;font-size:11px}
+
+  /* Battery gauge: smaller */
+  #battery-gauge{width:140px;height:76px}
+
+  /* Connection card: full width */
+  .conn-card{max-width:100%}
+
+  /* Show mobile topbar */
+  #mobile-topbar{display:flex}
+
+  /* Show mobile bottom nav, hide desktop sidebar nav */
+  .mobile-bottom-nav{display:flex}
+  .sidebar-nav{display:none}/* nav handled by bottom bar on mobile */
+  /* Let JS (applyOfficerUI) control logout/back visibility — no CSS override needed */
+
+  /* Stat values slightly smaller */
+  .stat-value{font-size:22px}
+  .threshold-select{font-size:18px}
+}
+
+@media(max-width:400px){
+  .stat-row{grid-template-columns:1fr}
+  .stat-row .stat-card:last-child{grid-column:auto}
+  .right-col{flex-direction:column}
+  .nav-title{font-size:14px;letter-spacing:1px}
+}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="page-landing" class="page">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <svg class="logo-sm" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#0d1a0d" stroke="#4caf50" stroke-width="2"/><circle cx="50" cy="50" r="34" fill="none" stroke="#4caf50" stroke-width="1" opacity=".5"/><circle cx="50" cy="50" r="20" fill="none" stroke="#4caf50" stroke-width="1" opacity=".3"/><line x1="50" y1="6" x2="50" y2="94" stroke="#4caf50" stroke-width="1" opacity=".4"/><line x1="6" y1="50" x2="94" y2="50" stroke="#4caf50" stroke-width="1" opacity=".4"/><line x1="18" y1="18" x2="82" y2="82" stroke="#4caf50" stroke-width="1" opacity=".4"/><line x1="82" y1="18" x2="18" y2="82" stroke="#4caf50" stroke-width="1" opacity=".4"/><path d="M26 50 Q32 42 38 50 Q41 55 44 46 Q47 39 50 50 Q53 61 56 50 Q59 42 62 50 Q67 57 74 50" fill="none" stroke="#4caf50" stroke-width="2"/><rect x="48" y="26" width="4" height="48" rx="2" fill="#4caf50" opacity=".8"/><circle cx="50" cy="10" r="4" fill="#4caf50"/><circle cx="50" cy="90" r="4" fill="#4caf50"/><circle cx="10" cy="50" r="4" fill="#4caf50"/><circle cx="90" cy="50" r="4" fill="#4caf50"/></svg>
+      <span class="nav-title">QUAKELIGHT</span>
+    </div>
+    <button class="nav-btn" onclick="showPage('login')">Officer Login</button>
+  </nav>
+  <div class="landing-body">
+    <div class="scan-ring"></div>
+    <div class="scan-ring"></div>
+    <div class="scan-ring"></div>
+    <svg class="logo-lg" viewBox="0 0 300 300">
+      <circle cx="150" cy="150" r="145" fill="#0d1a0d" stroke="#4caf50" stroke-width="2.5"/>
+      <circle cx="150" cy="150" r="118" fill="none" stroke="#4caf50" stroke-width="1.5" opacity=".5"/>
+      <circle cx="150" cy="150" r="90" fill="none" stroke="#4caf50" stroke-width="1" opacity=".35"/>
+      <circle cx="150" cy="150" r="60" fill="none" stroke="#4caf50" stroke-width="1" opacity=".2"/>
+      <line x1="150" y1="10" x2="150" y2="290" stroke="#4caf50" stroke-width="1" opacity=".35"/>
+      <line x1="10" y1="150" x2="290" y2="150" stroke="#4caf50" stroke-width="1" opacity=".35"/>
+      <line x1="47" y1="47" x2="253" y2="253" stroke="#4caf50" stroke-width="1" opacity=".35"/>
+      <line x1="253" y1="47" x2="47" y2="253" stroke="#4caf50" stroke-width="1" opacity=".35"/>
+      <path d="M70 70 L128 128" stroke="#4caf50" stroke-width="7" stroke-linecap="round"/>
+      <path d="M230 70 L172 128" stroke="#4caf50" stroke-width="7" stroke-linecap="round"/>
+      <path d="M70 230 L128 172" stroke="#4caf50" stroke-width="7" stroke-linecap="round"/>
+      <path d="M230 230 L172 172" stroke="#4caf50" stroke-width="7" stroke-linecap="round"/>
+      <path d="M88 150 Q98 136 108 150 Q114 160 120 142 Q126 126 132 150 Q138 174 144 150 Q150 126 156 150 Q162 174 168 150 Q174 136 180 150 Q186 162 196 150 Q206 138 212 150" fill="none" stroke="#4caf50" stroke-width="2.5"/>
+      <rect x="146" y="88" width="8" height="124" rx="4" fill="#4caf50" opacity=".85"/>
+      <circle cx="150" cy="28" r="7" fill="#4caf50"/>
+      <circle cx="150" cy="272" r="7" fill="#4caf50"/>
+      <circle cx="28" cy="150" r="7" fill="#4caf50"/>
+      <circle cx="272" cy="150" r="7" fill="#4caf50"/>
+    </svg>
+    <p class="landing-tagline">AN EARTHQUAKE MONITORING SYSTEM</p>
+    <div class="landing-actions">
+      <button class="btn-primary" onclick="enterViewer()">MONITOR</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="page-login" class="page">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <svg class="logo-sm" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#0d1a0d" stroke="#4caf50" stroke-width="2"/><circle cx="50" cy="50" r="34" fill="none" stroke="#4caf50" stroke-width="1" opacity=".5"/><line x1="50" y1="6" x2="50" y2="94" stroke="#4caf50" stroke-width="1" opacity=".4"/><line x1="6" y1="50" x2="94" y2="50" stroke="#4caf50" stroke-width="1" opacity=".4"/><path d="M26 50 Q32 42 38 50 Q41 55 44 46 Q47 39 50 50 Q53 61 56 50 Q59 42 62 50 Q67 57 74 50" fill="none" stroke="#4caf50" stroke-width="2"/><rect x="48" y="26" width="4" height="48" rx="2" fill="#4caf50" opacity=".8"/><circle cx="50" cy="10" r="4" fill="#4caf50"/><circle cx="50" cy="90" r="4" fill="#4caf50"/></svg>
+      <span class="nav-title">QUAKELIGHT</span>
+    </div>
+    <button class="nav-btn" onclick="showPage('landing')">← Back</button>
+  </nav>
+  <div class="login-body">
+    <div class="login-card">
+      <h2>DRRMO OFFICER LOGIN</h2>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="login-user" placeholder="Enter username" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="login-submit" id="login-btn" onclick="doLogin()">LOGIN</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY (mobile tap-to-close) -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page" style="flex-direction:row;min-height:100vh">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-avatar">
+      <svg width="44" height="44" viewBox="0 0 60 60"><circle cx="30" cy="22" r="13" fill="#2a4a2a"/><ellipse cx="30" cy="52" rx="20" ry="14" fill="#2a4a2a"/></svg>
+    </div>
+    <div class="sidebar-name" id="sidebar-name">VIEWER</div>
+    <div class="sidebar-role" id="sidebar-role">read only</div>
+    <div class="sidebar-divider"></div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-link active" id="nav-monitoring" onclick="switchTab('monitoring')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Monitoring
+      </button>
+      <button class="sidebar-link" id="nav-history" onclick="switchTab('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Data History
+      </button>
+      <button class="sidebar-link" id="nav-connection" onclick="switchTab('connection')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        Connection
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <!-- OFFICER LOGOUT — shown only when logged in as officer -->
+      <button class="sidebar-exit-btn" id="logout-btn" onclick="closeSidebar();doLogout()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+      <!-- VIEWER BACK — shown only when in viewer (read-only) mode -->
+      <button class="sidebar-back-btn" id="viewer-back-btn" onclick="closeSidebar();exitViewer()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Home
+      </button>
+      <div class="mqtt-pill">
+        <span class="mqtt-dot" id="mqtt-dot"></span>
+        <span id="mqtt-label">connecting...</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <!-- Mobile topbar (hamburger + title) -->
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;" class="mobile-topbar" id="mobile-topbar">
+      <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span style="font-family:var(--font-display);font-size:15px;font-weight:900;color:var(--green);letter-spacing:2px">QUAKELIGHT</span>
+      <div class="mqtt-pill" style="margin-left:auto;width:auto">
+        <span class="mqtt-dot" id="mqtt-dot-mobile"></span>
+        <span id="mqtt-label-mobile" style="font-size:10px">connecting...</span>
+      </div>
+    </div>
+
+    <div class="alert-bar" id="alert-bar">
+      ⚠ SEISMIC ALERT — PGA EXCEEDS THRESHOLD — QUAKELIGHT ACTIVATED
+    </div>
+
+    <!-- MONITORING TAB -->
+    <div class="tab-content active" id="tab-monitoring">
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <svg class="stat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2"><path d="M2 12 Q5 5 8 12 Q10 17 12 8 Q14 2 16 12 Q18 18 20 12 Q22 8 24 12"/></svg>
+            <span class="stat-label">Current PGA</span>
+          </div>
+          <div class="stat-value" id="pga-display">0.000 g</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <svg class="stat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+            <span class="stat-label">PGA Threshold</span>
+          </div>
+          <select class="threshold-select" id="threshold-select" onchange="saveThreshold()">
+            <option value="0.05">0.05 g</option>
+            <option value="0.10">0.10 g</option>
+            <option value="0.20" selected>0.20 g</option>
+            <option value="0.30">0.30 g</option>
+            <option value="0.50">0.50 g</option>
+            <option value="1.00">1.00 g</option>
+          </select>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <svg class="stat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span class="stat-label">Seismic Event</span>
+          </div>
+          <div id="eq-badge" class="eq-badge inactive" style="margin-top:4px">
+            <span id="eq-dot" style="width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block"></span>
+            <span id="eq-text">NO EVENT</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="card-title">
+            <span class="card-title-dot"></span>
+            SEISMIC DATA LOGGING — PGA OVER TIME
+          </div>
+          <div style="position:relative;flex:1;min-height:240px">
+            <canvas id="seismic-chart"></canvas>
+          </div>
+        </div>
+        <div class="right-col">
+          <div class="ctrl-card" id="ql-card">
+            <div class="ctrl-card-title">QuakeLight (LED Strip)</div>
+            <div class="ctrl-row">
+              <span class="status-pill pill-inactive" id="ql-status">OFFLINE</span>
+              <label class="toggle-switch" style="margin-left:auto">
+                <input type="checkbox" id="ql-toggle" onchange="sendCmd('led', this.checked?'1':'0')"/>
+                <div class="toggle-track" id="ql-track"><div class="toggle-thumb"></div></div>
+              </label>
+              <span class="toggle-label" id="ql-label">OFF</span>
+            </div>
+          </div>
+          <div class="ctrl-card" id="alarm-card">
+            <div class="ctrl-card-title">Alarm System (Buzzer)</div>
+            <div class="ctrl-row">
+              <span class="status-pill pill-inactive" id="alarm-status">OFFLINE</span>
+              <label class="toggle-switch" style="margin-left:auto">
+                <input type="checkbox" id="alarm-toggle" onchange="sendCmd('buzzer', this.checked?'1':'0')"/>
+                <div class="toggle-track" id="alarm-track"><div class="toggle-thumb"></div></div>
+              </label>
+              <span class="toggle-label" id="alarm-label">OFF</span>
+            </div>
+          </div>
+          <div class="battery-card">
+            <div class="ctrl-card-title" style="margin-bottom:10px">Battery</div>
+            <canvas id="battery-gauge" width="180" height="96"></canvas>
+            <div class="battery-pct" id="battery-pct">--%</div>
+            <div class="battery-sub">QUAKELIGHT DEVICE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="tab-content" id="tab-history">
+      <div class="history-wrap">
+        <div class="history-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6a936a" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="history-search" placeholder="Search by date or PGA..." oninput="renderHistory()"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="history-table" style="width:100%">
+            <thead><tr>
+              <th>Date &amp; Time</th>
+              <th>PGA Reading</th>
+              <th>Battery</th>
+              <th>Intensity Level</th>
+            </tr></thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="4" class="empty-state">Loading data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECTION TAB -->
+    <div class="tab-content" id="tab-connection">
+      <div class="conn-card">
+        <div class="card-title" style="margin-bottom:16px">
+          <span class="card-title-dot"></span>
+          MQTT CONNECTION STATUS
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Broker</span>
+          <span class="conn-val">99b107...hivemq.cloud:8884</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Subscribe Topic</span>
+          <span class="conn-val">quake/#</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">PGA Topic</span>
+          <span class="conn-val">quake/pga</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">LED Command</span>
+          <span class="conn-val">quake/led/cmd</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Buzzer Command</span>
+          <span class="conn-val">quake/buzzer/cmd</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Battery Topic</span>
+          <span class="conn-val">quake/battery</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">MQTT Status</span>
+          <span class="conn-badge pill-inactive" id="conn-mqtt-status">Disconnected</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Supabase</span>
+          <span class="conn-val">oravkfploatazeetraik.supabase.co</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Last Message</span>
+          <span class="conn-val" id="conn-last-msg">—</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /main-area -->
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="mobile-nav-btn active" id="mob-nav-monitoring" onclick="switchTab('monitoring')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Monitor
+    </button>
+    <button class="mobile-nav-btn" id="mob-nav-history" onclick="switchTab('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </button>
+    <button class="mobile-nav-btn" id="mob-nav-connection" onclick="switchTab('connection')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+      Connect
+    </button>
+    <button class="mobile-nav-btn" id="mob-nav-profile" onclick="openSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Profile
+    </button>
+  </nav>
+
+</div><!-- /page-dashboard -->
+
+<script>
+const SUPABASE_URL = 'https://oravkfploatazeetraik.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yYXZrZnBsb2F0YXplZXRyYWlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDExNzEsImV4cCI6MjA5MTkxNzE3MX0.DIp4i6v2XtwS1FlkYMKLM5oZJelL7cNMww8sojhSUi0';
+const MQTT_BROKER  = 'wss://99b1073715694d9e876a4f587a4013f5.s1.eu.hivemq.cloud:8884/mqtt';
+const MQTT_USER    = 'QuakeLight';
+const MQTT_PASS    = 'CvSU2026';
+
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem('ql_'+k)); } catch { return null; } },
+  set: (k,v) => { try { localStorage.setItem('ql_'+k, JSON.stringify(v)); } catch {} },
+  del: k => { try { localStorage.removeItem('ql_'+k); } catch {} }
+};
+
+let state = {
+  page:      LS.get('page')      || 'landing',
+  tab:       LS.get('tab')       || 'monitoring',
+  isOfficer: LS.get('isOfficer') || false,
+  username:  LS.get('username')  || '',
+  threshold: parseFloat(LS.get('threshold')) || 0.20,
+  qlOn:      LS.get('qlOn')      || false,
+  alarmOn:   LS.get('alarmOn')   || false,
+  battery:   LS.get('battery')   !== null ? LS.get('battery') : null,
+  lastPGA:   LS.get('lastPGA')   || 0,
+};
+
+let mqttClient   = null;
+let chartInstance = null;
+let chartLabels  = LS.get('chartLabels') || [];
+let chartData    = LS.get('chartData')   || [];
+const MAX_PTS = 30;
+
+// ── PAGE ROUTING ──
+function showPage(p, save=true) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  state.page = p;
+  if(save) LS.set('page', p);
+  if(p === 'dashboard') {
+    applyOfficerUI();
+    switchTab(state.tab, false);
+    restoreControls();
+    initChart();
+    initMQTT();
+    loadHistory();
+  }
+}
+
+function enterViewer() {
+  state.isOfficer = false;
+  state.username  = 'VIEWER';
+  LS.set('isOfficer', false);
+  LS.set('username', 'VIEWER');
+  showPage('dashboard');
+}
+
+// ── NEW: exit viewer back to landing without clearing officer state ──
+function exitViewer() {
+  if(mqttClient) { mqttClient.end(true); mqttClient = null; }
+  state.page = 'landing';
+  LS.set('page', 'landing');
+  showPage('landing', false);
+}
+
+// ── MOBILE SIDEBAR ──
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ── TAB SWITCHING ──
+function switchTab(tab, save=true) {
+  ['monitoring','history','connection'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    const nav = document.getElementById('nav-'+t);
+    if(nav) nav.classList.toggle('active', t===tab);
+    // sync mobile bottom nav
+    const mobnav = document.getElementById('mob-nav-'+t);
+    if(mobnav) mobnav.classList.toggle('active', t===tab);
+  });
+  state.tab = tab;
+  if(save) LS.set('tab', tab);
+  if(tab === 'history') loadHistory();
+}
+
+// ── AUTH ──
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  if(!username || !password) { showError('Please enter username and password.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Verifying...';
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=username,password&limit=1`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY } }
+    );
+    const rows = await res.json();
+    if(!rows || rows.length === 0) { showError('Invalid username or password.'); resetBtn(); return; }
+
+    const match = password === rows[0].password;
+    if(!match) { showError('Invalid username or password.'); resetBtn(); return; }
+
+    state.isOfficer = true;
+    state.username  = rows[0].username;
+    LS.set('isOfficer', true);
+    LS.set('username', rows[0].username);
+    showPage('dashboard');
+    resetBtn();
+  } catch(e) {
+    showError('Connection error: ' + e.message);
+    resetBtn();
+  }
+
+  function showError(msg) { err.textContent = msg; err.style.display = 'block'; }
+  function resetBtn() { btn.disabled = false; btn.innerHTML = 'LOGIN'; }
+}
+
+function doLogout() {
+  state.isOfficer = false;
+  state.username  = '';
+  state.page = 'landing';
+  state.tab  = 'monitoring';
+  LS.set('isOfficer', false);
+  LS.set('username', '');
+  LS.set('page', 'landing');
+  LS.set('tab', 'monitoring');
+  if(mqttClient) { mqttClient.end(true); mqttClient = null; }
+  showPage('landing', false);
+}
+
+// ── OFFICER UI GATES ──
+function applyOfficerUI() {
+  const isOff = state.isOfficer;
+  document.getElementById('sidebar-name').textContent = isOff ? state.username.toUpperCase() : 'VIEWER';
+  document.getElementById('sidebar-role').textContent = isOff ? 'drrmo officer' : 'read only';
+
+  // Show the right exit button
+  document.getElementById('logout-btn').style.display    = isOff ? 'flex' : 'none';
+  document.getElementById('viewer-back-btn').style.display = isOff ? 'none' : 'flex';
+
+  // Disable controls for viewers
+  ['ql-toggle','alarm-toggle','threshold-select'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = !isOff;
+  });
+  ['ql-card','alarm-card'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('ctrl-disabled', !isOff);
+  });
+  document.getElementById('threshold-select').style.opacity = isOff ? '1' : '0.5';
+}
+
+function restoreControls() {
+  const sel = document.getElementById('threshold-select');
+  const stored = state.threshold.toFixed(2);
+  for(let i=0; i<sel.options.length; i++) {
+    if(parseFloat(sel.options[i].value).toFixed(2) === stored) { sel.selectedIndex = i; break; }
+  }
+  setLEDState(state.qlOn);
+  setAlarmState(state.alarmOn);
+  if(state.battery !== null) drawBattery(state.battery);
+  if(state.lastPGA) document.getElementById('pga-display').textContent = parseFloat(state.lastPGA).toFixed(3)+' g';
+}
+
+function saveThreshold() {
+  state.threshold = parseFloat(document.getElementById('threshold-select').value);
+  LS.set('threshold', state.threshold);
+  checkAlert(state.lastPGA);
+}
+
+// ── MQTT ──
+function initMQTT() {
+  if(mqttClient && mqttClient.connected) return;
+  mqttClient = mqtt.connect(MQTT_BROKER, { username: MQTT_USER, password: MQTT_PASS });
+
+  mqttClient.on('connect', () => {
+    setMQTTStatus('online', 'connected · live');
+    document.getElementById('conn-mqtt-status').textContent = 'Connected';
+    document.getElementById('conn-mqtt-status').className = 'conn-badge pill-active';
+    mqttClient.subscribe('quake/#');
+  });
+
+  mqttClient.on('close', () => {
+    setMQTTStatus('', 'disconnected');
+    document.getElementById('conn-mqtt-status').textContent = 'Disconnected';
+    document.getElementById('conn-mqtt-status').className = 'conn-badge pill-inactive';
+  });
+
+  mqttClient.on('error', () => setMQTTStatus('error', 'error'));
+
+  mqttClient.on('message', (topic, payload) => {
+    const msg = payload.toString();
+    const now = new Date();
+    document.getElementById('conn-last-msg').textContent = now.toLocaleTimeString()+' — '+topic+': '+msg;
+
+    if(topic === 'quake/pga') {
+      let val = parseFloat(msg); if(isNaN(val)) val = 0;
+      state.lastPGA = val; LS.set('lastPGA', val);
+      const disp = document.getElementById('pga-display');
+      disp.textContent = val.toFixed(3)+' g';
+      disp.className = 'stat-value' + (val >= state.threshold ? ' alert-val' : '');
+      addChartPoint(now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}), val);
+      checkAlert(val);
+    }
+
+    if(topic === 'quake/state') {
+      const active = msg === '1';
+      document.getElementById('eq-badge').className = 'eq-badge ' + (active ? 'active' : 'inactive');
+      document.getElementById('eq-text').textContent = active ? 'ACTIVE EARTHQUAKE' : 'NO EVENT';
+    }
+
+    if(topic === 'quake/led') {
+      const on = msg === '1';
+      state.qlOn = on; LS.set('qlOn', on);
+      setLEDState(on);
+    }
+
+    if(topic === 'quake/buzzer') {
+      const on = msg === '1';
+      state.alarmOn = on; LS.set('alarmOn', on);
+      setAlarmState(on);
+    }
+
+    if(topic === 'quake/battery') {
+      const b = parseFloat(msg);
+      if(!isNaN(b)) { state.battery = b; LS.set('battery', b); drawBattery(b); }
+    }
+  });
+}
+
+function setMQTTStatus(cls, label) {
+  const dot = document.getElementById('mqtt-dot');
+  dot.className = 'mqtt-dot' + (cls ? ' '+cls : '');
+  document.getElementById('mqtt-label').textContent = label;
+  // sync mobile topbar
+  const dotM = document.getElementById('mqtt-dot-mobile');
+  if(dotM) dotM.className = 'mqtt-dot' + (cls ? ' '+cls : '');
+  const labelM = document.getElementById('mqtt-label-mobile');
+  if(labelM) labelM.textContent = label;
+}
+
+function sendCmd(device, value) {
+  if(!state.isOfficer) return;
+  if(!mqttClient || !mqttClient.connected) { alert('MQTT not connected.'); return; }
+  if(device === 'led')    mqttClient.publish('quake/led/cmd', value);
+  if(device === 'buzzer') mqttClient.publish('quake/buzzer/cmd', value);
+}
+
+// ── TOGGLE HELPERS ──
+function setLEDState(on) {
+  document.getElementById('ql-toggle').checked = on;
+  document.getElementById('ql-track').className = 'toggle-track' + (on ? ' on' : '');
+  document.getElementById('ql-label').className = 'toggle-label' + (on ? ' on' : '');
+  document.getElementById('ql-label').textContent = on ? 'ON' : 'OFF';
+  const pill = document.getElementById('ql-status');
+  pill.textContent = on ? 'ACTIVE' : 'OFFLINE';
+  pill.className = 'status-pill ' + (on ? 'pill-active' : 'pill-inactive');
+}
+
+function setAlarmState(on) {
+  document.getElementById('alarm-toggle').checked = on;
+  document.getElementById('alarm-track').className = 'toggle-track' + (on ? ' on' : '');
+  document.getElementById('alarm-label').className = 'toggle-label' + (on ? ' on' : '');
+  document.getElementById('alarm-label').textContent = on ? 'ON' : 'OFF';
+  const pill = document.getElementById('alarm-status');
+  pill.textContent = on ? 'ACTIVE' : 'OFFLINE';
+  pill.className = 'status-pill ' + (on ? 'pill-active' : 'pill-inactive');
+}
+
+function checkAlert(pga) {
+  document.getElementById('alert-bar').style.display = pga >= state.threshold ? 'block' : 'none';
+}
+
+// ── CHART ──
+function initChart() {
+  if(chartInstance) return;
+  const ctx = document.getElementById('seismic-chart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets:[{
+        label:'PGA (g)',data: chartData,
+        borderColor:'#81c784',backgroundColor:'rgba(129,199,132,0.08)',
+        fill:true,tension:0.4,pointRadius:2,pointBackgroundColor:'#81c784',borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:200},
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#6a936a',font:{size:10,family:'Share Tech Mono'}},grid:{color:'rgba(76,175,80,.06)'}},
+        y:{ticks:{color:'#6a936a',font:{size:10,family:'Share Tech Mono'},callback:v=>v.toFixed(3)+' g'},grid:{color:'rgba(76,175,80,.06)'},min:0}
+      }
+    }
+  });
+}
+
+function addChartPoint(label, value) {
+  chartLabels.push(label);
+  chartData.push(parseFloat(value.toFixed(4)));
+  if(chartLabels.length > MAX_PTS) { chartLabels.shift(); chartData.shift(); }
+  LS.set('chartLabels', chartLabels);
+  LS.set('chartData', chartData);
+  if(chartInstance) chartInstance.update('none');
+}
+
+// ── BATTERY ──
+function drawBattery(pct) {
+  const canvas = document.getElementById('battery-gauge');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,180,96);
+  const cx=90, cy=90, r=72;
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,0);
+  ctx.lineWidth=14; ctx.strokeStyle='#1f351f'; ctx.lineCap='round'; ctx.stroke();
+  const angle = Math.PI + (Math.min(Math.max(pct,0),100)/100)*Math.PI;
+  const col = pct>60 ? '#4caf50' : pct>30 ? '#ffa726' : '#ef5350';
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,angle);
+  ctx.strokeStyle=col; ctx.stroke();
+  document.getElementById('battery-pct').textContent = Math.round(pct)+'%';
+  document.getElementById('battery-pct').style.color = col;
+}
+
+// ── HISTORY — fixed to match bridge.js columns: pga, eq_state, buzzer, led, battery, created_at ──
+let historyCache = [];
+
+async function loadHistory() {
+  const tbody = document.getElementById('history-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><span class="spinner"></span>Loading from Supabase...</td></tr>';
+  try {
+    const res = await fetch(
+      // Select the columns bridge.js actually inserts
+      `${SUPABASE_URL}/rest/v1/readings?select=recorded_at,pga,battery&order=recorded_at.desc&limit=200`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY } }
+    );
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(!Array.isArray(data)) throw new Error('Unexpected response');
+    historyCache = data;
+    renderHistory();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Failed to load data: ${e.message}</td></tr>`;
+  }
+}
+
+function renderHistory() {
+  const q = (document.getElementById('history-search').value||'').toLowerCase();
+  const rows = historyCache.filter(r =>
+    (!q ||
+      String(r.recorded_at||'').toLowerCase().includes(q) ||
+      String(r.pga||'').toLowerCase().includes(q))
+  );
+  const tbody = document.getElementById('history-tbody');
+  if(rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const pgaNum = parseFloat(r.pga);
+    const isHigh = !isNaN(pgaNum) && pgaNum >= state.threshold;
+    const ts  = r.recorded_at ? new Date(r.recorded_at).toLocaleString() : '—';
+    const pga = !isNaN(pgaNum) ? pgaNum.toFixed(4)+' g' : '—';
+    const bat = r.battery != null ? parseFloat(r.battery).toFixed(1)+'%' : '—';
+
+    let intensity = '—', intensityClass = '';
+    if(!isNaN(pgaNum)) {
+      if(pgaNum >= 0.33) {
+        intensity = 'Level 3 — Strong';
+        intensityClass = 'style="color:var(--red);font-weight:600"';
+      } else if(pgaNum >= 0.16) {
+        intensity = 'Level 2 — Moderate';
+        intensityClass = 'style="color:var(--amber);font-weight:600"';
+      } else if(pgaNum >= 0.02) {
+        intensity = 'Level 1 — Weak';
+        intensityClass = 'style="color:var(--green2);font-weight:600"';
+      } else {
+        intensity = 'Below Detection';
+        intensityClass = 'style="color:var(--text3)"';
+      }
+    }
+
+    return `<tr>
+      <td>${ts}</td>
+      <td class="pga-cell${isHigh?' high':''}">${pga}</td>
+      <td>${bat}</td>
+      <td ${intensityClass}>${intensity}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── BOOT ──
+(function boot() {
+  const savedPage = state.page;
+  if(savedPage === 'login') showPage('landing', false);
+  else if(savedPage === 'dashboard') showPage('dashboard', false);
+  else showPage('landing', false);
+})();
+</script>
+</body>
+</html>
