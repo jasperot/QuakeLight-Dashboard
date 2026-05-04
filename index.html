@@ -200,8 +200,20 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
   color:#fff;padding:10px 24px;font-size:13px;font-weight:600;
   display:none;text-align:center;letter-spacing:1px;
   font-family:var(--font-mono);animation:alertpulse 1s infinite;
+  display:none;align-items:center;justify-content:center;gap:16px;
 }
 @keyframes alertpulse{0%,100%{opacity:1}50%{opacity:.75}}
+
+/* ── RESET ALERT BUTTON ── */
+.reset-alert-btn{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);
+  color:#fff;padding:6px 16px;border-radius:6px;
+  font-family:var(--font-display);font-size:11px;font-weight:700;
+  letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+}
+.reset-alert-btn:hover{background:rgba(255,255,255,.28);transform:scale(1.03)}
+.reset-alert-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
 .tab-content{flex:1;padding:24px;overflow-y:auto;display:none}
 .tab-content.active{display:flex;flex-direction:column;gap:18px}
 
@@ -305,20 +317,17 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 /* Mobile topbar hidden on desktop */
 #mobile-topbar{display:none}
 
-/* ── HAMBURGER BUTTON (mobile only) ── */
 .hamburger{
   display:none;background:none;border:none;cursor:pointer;
   padding:8px;color:var(--green2);flex-shrink:0;
 }
 .hamburger svg{display:block}
 
-/* ── SIDEBAR OVERLAY (mobile) ── */
 .sidebar-overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;
 }
 .sidebar-overlay.open{display:block}
 
-/* ── MOBILE BOTTOM NAV ── */
 .mobile-bottom-nav{
   display:none;position:fixed;bottom:0;left:0;right:0;z-index:120;
   background:var(--panel);border-top:1px solid var(--border);
@@ -333,14 +342,40 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .mobile-nav-btn.active{color:var(--green)}
 .mobile-nav-btn svg{width:20px;height:20px}
 
-/* ── RESPONSIVE BREAKPOINTS ── */
-@media(max-width:768px){
+/* ── RESET CONFIRM MODAL ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+  display:none;align-items:center;justify-content:center;
+}
+.modal-backdrop.open{display:flex}
+.modal-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:32px 28px;max-width:400px;width:90%;
+  display:flex;flex-direction:column;gap:20px;
+}
+.modal-title{
+  font-family:var(--font-display);font-size:16px;font-weight:700;
+  color:var(--red);letter-spacing:2px;text-align:center;
+}
+.modal-body{font-family:var(--font-mono);font-size:13px;color:var(--text2);line-height:1.6;text-align:center}
+.modal-actions{display:flex;gap:10px;justify-content:center}
+.modal-cancel{
+  background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text2);padding:10px 24px;border-radius:8px;
+  font-family:var(--font-mono);font-size:13px;cursor:pointer;transition:all .2s;
+}
+.modal-cancel:hover{background:var(--border);color:var(--text)}
+.modal-confirm{
+  background:var(--red);border:none;color:#fff;
+  padding:10px 24px;border-radius:8px;
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  letter-spacing:1px;cursor:pointer;transition:all .2s;
+}
+.modal-confirm:hover{background:#c62828}
 
-  /* Navbar */
+@media(max-width:768px){
   .navbar{padding:0 16px;height:56px}
   .nav-title{font-size:17px;letter-spacing:2px}
-
-  /* Landing */
   .landing-body{padding:20px 16px 100px}
   .logo-lg{width:200px;height:200px}
   .landing-tagline{font-size:12px;letter-spacing:1px;text-align:center}
@@ -353,60 +388,33 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
     0%{width:200px;height:200px;opacity:.6;top:calc(50% - 100px);left:calc(50% - 100px)}
     100%{width:500px;height:500px;opacity:0;top:calc(50% - 250px);left:calc(50% - 250px)}
   }
-
-  /* Login card */
   .login-card{padding:32px 20px;border-radius:12px}
-
-  /* Dashboard: stack sidebar below (hidden by default, slides in) */
   #page-dashboard{flex-direction:column!important}
-
   .sidebar{
     position:fixed;top:0;left:-260px;width:240px;height:100vh;z-index:200;
     transition:left .25s ease;box-shadow:4px 0 24px rgba(0,0,0,.5);
   }
   .sidebar.open{left:0}
-
-  /* Show hamburger, hide desktop sidebar-bottom mqtt pill from flow */
   .hamburger{display:flex;align-items:center}
-
-  /* Main area: full width, add bottom padding for mobile nav */
   .main-area{min-height:calc(100vh - 56px);padding-bottom:58px}
-
-  /* Stat row: 1 column on very small, 2 col on medium mobile */
   .stat-row{grid-template-columns:1fr 1fr;gap:10px}
   .stat-row .stat-card:last-child{grid-column:1/-1}
-
-  /* Chart row: stack vertically */
   .chart-row{grid-template-columns:1fr;gap:10px}
   .right-col{flex-direction:row;flex-wrap:wrap;gap:10px}
   .ctrl-card{flex:1;min-width:140px}
   .battery-card{flex:1;min-width:140px}
-
-  /* Tab content padding */
   .tab-content{padding:14px}
-
-  /* History table: compact */
   .history-table th,.history-table td{padding:10px 12px;font-size:11px}
-
-  /* Battery gauge: smaller */
   #battery-gauge{width:140px;height:76px}
-
-  /* Connection card: full width */
   .conn-card{max-width:100%}
-
-  /* Show mobile topbar */
   #mobile-topbar{display:flex}
-
-  /* Show mobile bottom nav, hide desktop sidebar nav */
   .mobile-bottom-nav{display:flex}
-  .sidebar-nav{display:none}/* nav handled by bottom bar on mobile */
-  /* Let JS (applyOfficerUI) control logout/back visibility — no CSS override needed */
-
-  /* Stat values slightly smaller */
+  .sidebar-nav{display:none}
   .stat-value{font-size:22px}
   .threshold-select{font-size:18px}
+  .alert-bar{font-size:11px;padding:10px 12px;gap:10px}
+  .reset-alert-btn{padding:5px 12px;font-size:10px}
 }
-
 @media(max-width:400px){
   .stat-row{grid-template-columns:1fr}
   .stat-row .stat-card:last-child{grid-column:auto}
@@ -416,6 +424,21 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 </style>
 </head>
 <body>
+
+<!-- RESET CONFIRM MODAL -->
+<div class="modal-backdrop" id="reset-modal">
+  <div class="modal-box">
+    <div class="modal-title">CONFIRM RESET</div>
+    <div class="modal-body">
+      This will deactivate the seismic alert, turn off the LED strip and buzzer, and reset the detection state on the QuakeLight device.<br><br>
+      Only do this when the situation is under control and authorities have confirmed it is safe.
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeResetModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmReset()">RESET SYSTEM</button>
+    </div>
+  </div>
+</div>
 
 <!-- LANDING -->
 <div id="page-landing" class="page">
@@ -512,12 +535,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
     </nav>
 
     <div class="sidebar-bottom">
-      <!-- OFFICER LOGOUT — shown only when logged in as officer -->
       <button class="sidebar-exit-btn" id="logout-btn" onclick="closeSidebar();doLogout()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Logout
       </button>
-      <!-- VIEWER BACK — shown only when in viewer (read-only) mode -->
       <button class="sidebar-back-btn" id="viewer-back-btn" onclick="closeSidebar();exitViewer()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Home
@@ -530,7 +551,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
   </aside>
 
   <div class="main-area">
-    <!-- Mobile topbar (hamburger + title) -->
+    <!-- Mobile topbar -->
     <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;" class="mobile-topbar" id="mobile-topbar">
       <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -542,8 +563,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
       </div>
     </div>
 
+    <!-- ALERT BAR — with Reset button for officers -->
     <div class="alert-bar" id="alert-bar">
-      ⚠ SEISMIC ALERT — PGA EXCEEDS THRESHOLD — QUAKELIGHT ACTIVATED
+      <span>⚠ SEISMIC ALERT — PGA EXCEEDS THRESHOLD — QUAKELIGHT ACTIVATED</span>
+      <button class="reset-alert-btn" id="reset-btn" onclick="openResetModal()" style="display:none">
+        RESET SYSTEM
+      </button>
     </div>
 
     <!-- MONITORING TAB -->
@@ -676,6 +701,14 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
           <span class="conn-val">quake/buzzer/cmd</span>
         </div>
         <div class="conn-row">
+          <span class="conn-key">Threshold Command</span>
+          <span class="conn-val">quake/threshold/cmd</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-key">Reset Command</span>
+          <span class="conn-val">quake/reset/cmd</span>
+        </div>
+        <div class="conn-row">
           <span class="conn-key">Battery Topic</span>
           <span class="conn-val">quake/battery</span>
         </div>
@@ -742,10 +775,10 @@ let state = {
   lastPGA:   LS.get('lastPGA')   || 0,
 };
 
-let mqttClient   = null;
+let mqttClient    = null;
 let chartInstance = null;
-let chartLabels  = LS.get('chartLabels') || [];
-let chartData    = LS.get('chartData')   || [];
+let chartLabels   = LS.get('chartLabels') || [];
+let chartData     = LS.get('chartData')   || [];
 const MAX_PTS = 30;
 
 // ── PAGE ROUTING ──
@@ -772,7 +805,6 @@ function enterViewer() {
   showPage('dashboard');
 }
 
-// ── NEW: exit viewer back to landing without clearing officer state ──
 function exitViewer() {
   if(mqttClient) { mqttClient.end(true); mqttClient = null; }
   state.page = 'landing';
@@ -796,7 +828,6 @@ function switchTab(tab, save=true) {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
     const nav = document.getElementById('nav-'+t);
     if(nav) nav.classList.toggle('active', t===tab);
-    // sync mobile bottom nav
     const mobnav = document.getElementById('mob-nav-'+t);
     if(mobnav) mobnav.classList.toggle('active', t===tab);
   });
@@ -824,9 +855,7 @@ async function doLogin() {
     );
     const rows = await res.json();
     if(!rows || rows.length === 0) { showError('Invalid username or password.'); resetBtn(); return; }
-
-    const match = password === rows[0].password;
-    if(!match) { showError('Invalid username or password.'); resetBtn(); return; }
+    if(password !== rows[0].password) { showError('Invalid username or password.'); resetBtn(); return; }
 
     state.isOfficer = true;
     state.username  = rows[0].username;
@@ -862,11 +891,13 @@ function applyOfficerUI() {
   document.getElementById('sidebar-name').textContent = isOff ? state.username.toUpperCase() : 'VIEWER';
   document.getElementById('sidebar-role').textContent = isOff ? 'drrmo officer' : 'read only';
 
-  // Show the right exit button
-  document.getElementById('logout-btn').style.display    = isOff ? 'flex' : 'none';
+  document.getElementById('logout-btn').style.display     = isOff ? 'flex' : 'none';
   document.getElementById('viewer-back-btn').style.display = isOff ? 'none' : 'flex';
 
-  // Disable controls for viewers
+  // Reset button only visible to officers
+  const resetBtn = document.getElementById('reset-btn');
+  if(resetBtn) resetBtn.style.display = isOff ? 'inline-block' : 'none';
+
   ['ql-toggle','alarm-toggle','threshold-select'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.disabled = !isOff;
@@ -890,10 +921,43 @@ function restoreControls() {
   if(state.lastPGA) document.getElementById('pga-display').textContent = parseFloat(state.lastPGA).toFixed(3)+' g';
 }
 
+// ── THRESHOLD ──
 function saveThreshold() {
   state.threshold = parseFloat(document.getElementById('threshold-select').value);
   LS.set('threshold', state.threshold);
   checkAlert(state.lastPGA);
+  if(mqttClient && mqttClient.connected) {
+    mqttClient.publish('quake/threshold/cmd', String(state.threshold));
+  }
+}
+
+// ── RESET MODAL ──
+function openResetModal() {
+  if(!state.isOfficer) return;
+  document.getElementById('reset-modal').classList.add('open');
+}
+function closeResetModal() {
+  document.getElementById('reset-modal').classList.remove('open');
+}
+function confirmReset() {
+  closeResetModal();
+  if(!mqttClient || !mqttClient.connected) {
+    alert('Cannot reset: MQTT not connected.');
+    return;
+  }
+  mqttClient.publish('quake/reset/cmd', 'reset');
+
+  // Also optimistically clear dashboard state
+  document.getElementById('alert-bar').style.display = 'none';
+  document.getElementById('eq-badge').className = 'eq-badge inactive';
+  document.getElementById('eq-text').textContent = 'NO EVENT';
+  document.getElementById('pga-display').className = 'stat-value';
+  setLEDState(false);
+  setAlarmState(false);
+  state.qlOn   = false;
+  state.alarmOn = false;
+  LS.set('qlOn', false);
+  LS.set('alarmOn', false);
 }
 
 // ── MQTT ──
@@ -906,6 +970,7 @@ function initMQTT() {
     document.getElementById('conn-mqtt-status').textContent = 'Connected';
     document.getElementById('conn-mqtt-status').className = 'conn-badge pill-active';
     mqttClient.subscribe('quake/#');
+    mqttClient.publish('quake/threshold/cmd', String(state.threshold));
   });
 
   mqttClient.on('close', () => {
@@ -960,7 +1025,6 @@ function setMQTTStatus(cls, label) {
   const dot = document.getElementById('mqtt-dot');
   dot.className = 'mqtt-dot' + (cls ? ' '+cls : '');
   document.getElementById('mqtt-label').textContent = label;
-  // sync mobile topbar
   const dotM = document.getElementById('mqtt-dot-mobile');
   if(dotM) dotM.className = 'mqtt-dot' + (cls ? ' '+cls : '');
   const labelM = document.getElementById('mqtt-label-mobile');
@@ -996,7 +1060,12 @@ function setAlarmState(on) {
 }
 
 function checkAlert(pga) {
-  document.getElementById('alert-bar').style.display = pga >= state.threshold ? 'block' : 'none';
+  const bar = document.getElementById('alert-bar');
+  if(pga >= state.threshold) {
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 // ── CHART ──
@@ -1050,7 +1119,7 @@ function drawBattery(pct) {
   document.getElementById('battery-pct').style.color = col;
 }
 
-// ── HISTORY — fixed to match bridge.js columns: pga, eq_state, buzzer, led, battery, created_at ──
+// ── HISTORY ──
 let historyCache = [];
 
 async function loadHistory() {
@@ -1058,7 +1127,6 @@ async function loadHistory() {
   tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><span class="spinner"></span>Loading from Supabase...</td></tr>';
   try {
     const res = await fetch(
-      // Select the columns bridge.js actually inserts
       `${SUPABASE_URL}/rest/v1/readings?select=recorded_at,pga,battery&order=recorded_at.desc&limit=200`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY } }
     );
